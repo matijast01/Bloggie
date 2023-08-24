@@ -36,6 +36,11 @@ namespace Bloggie.Web.Controllers
 
             if (blogPost != null) 
             {
+                if (!blogPost.Visible)
+                {
+                    return RedirectToAction("Index", "Home");
+                }
+
                 var totalLikes = await blogPostLikeRepository.GetTotalLikes(blogPost.Id);
 
                 if (signInManager.IsSignedIn(User)) 

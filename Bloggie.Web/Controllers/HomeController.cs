@@ -1,4 +1,5 @@
 ﻿using Bloggie.Web.Models;
+using Bloggie.Web.Models.Domain;
 using Bloggie.Web.Models.ViewModels;
 using Bloggie.Web.Repository;
 using Microsoft.AspNetCore.Mvc;
@@ -23,13 +24,22 @@ namespace Bloggie.Web.Controllers
         {
             // Getting all blogs
             var blogPosts = await blogPostRepository.GetAllAsync();
+            var blogPostsToSend = new List<BlogPost>();
+            foreach (var blogPost in blogPosts) 
+            {
+                if (blogPost.Visible) 
+                {
+                    blogPostsToSend.Add(blogPost);
+                }
+            }
+
 
             // Getting all tags
             var tags = await tagRepository.GetAllAsync();
 
             var model = new HomeViewModel
             {
-                BlogPosts = blogPosts,
+                BlogPosts = blogPostsToSend,
                 Tags = tags
             };
 
