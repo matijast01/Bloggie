@@ -1,0 +1,219 @@
+﻿@using Microsoft.AspNetCore.Identity;
+@inject SignInManager<IdentityUser> signInManager
+@inject UserManager<IdentityUser> userManager
+@model Bloggie.Web.Models.ViewModels.BlogDetailsViewModel
+@{
+    ViewData["Title"] = Model.PageTitle;
+}
+
+<div class="container my-5">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-6">
+
+            @if (Model != null)
+            {
+                <h1 class="mb-3">@Model.Heading</h1>
+                <div class="d-flex justify-content-between mb-3">
+                    <span class="text-secondary">@Model.Author</span>
+                    <span class="text-secondary">@Model.PublishedDate.ToShortDateString()</span>
+                </div>
+
+                <div class="mb-3">
+                    @if (signInManager.IsSignedIn(User))
+                    {
+                        if (Model.Liked)
+                        {
+                            <a id="btnLike" style="cursor: pointer;" onclick="deleteLikeForBlog();">
+                                <i class="bi bi-heart-fill" style="color: palevioletred;"></i>
+                            </a>
+                        }
+                        else
+                        {
+                            <a id="btnLike" style="cursor: pointer;" onclick="addLikeForBlog();">
+                                <i class="bi bi-heart" style="color: palevioletred;"></i>
+                            </a>
+                        }
+                    }
+                    <span id="totalLikes">@Model.TotalLikes</span> likes
+                </div>
+
+                <div class="mb-3 d-flex">
+                    @foreach (var tag in @Model.Tags)
+                    {
+                        <span class="badge bg-dark me-1">@tag.Name</span>
+                    }
+                </div>
+
+                <img src="@Model.FeaturedImageUrl" class="d-block img-fluid mb-3"/>
+
+                <div class="mb-3 blog-details-content">
+                    @Html.Raw(Model.Content)
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h5>Comments</h5>
+
+                        @if (signInManager.IsSignedIn(User))
+                        {
+                            <form method="post">
+                                <div class="mb-3">
+                                    <label class="form-label">Comment Description</label>
+                                    <input type="text" class="form-control" asp-for="CommentDescription" required/>
+                                </div>
+                                <div class="mb-3">
+                                    <button type="submit" class="btn btn-dark">Comment</button>
+                                    <input type="hidden" asp-for="Id"/>
+                                    <input type="hidden" asp-for="UrlHandle"/>
+                                </div>
+                            </form>
+                        }
+                    </div>
+                    <div class="card-body">
+                        @if (Model.Comments != null && Model.Comments.Any())
+                        {
+
+                            @foreach (var comment in Model.Comments)
+                            {
+                                <div class="card mb-3" id="@comment.CommentId.ToString()">
+                                    <div class="card-body" id="@comment.CommentId.ToString()ChildDiv">
+                                        <div class="d-flex justify-content-between">
+                                            <span id="@comment.CommentId.ToString()Description">
+                                                @comment.Description
+                                            </span>
+                                            <span class="d-flex">
+                                                @if (signInManager.IsSignedIn(User))
+                                                {
+                                                    @if (userManager.GetUserId(User) == comment.UserId.ToString())
+                                                    {
+                                                        <a class="px-1" style="cursor: pointer;" onclick="showEditFormat('@comment.CommentId');">
+                                                            <i class="bi bi-pen" style="color: darkblue;"></i>
+                                                        </a>
+                                                    }
+                                                    @if (userManager.GetUserId(User) == comment.UserId.ToString() || User.IsInRole("Admin"))
+                                                    {
+                                                        <a class="px-1" style="cursor: pointer;" onclick="deleteCommentById('@comment.CommentId');">
+                                                            <i class="bi bi-trash" style="color: red;"></i>
+                                                        </a>
+                                                    }
+                                                }
+                                            </span>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-secondary">@comment.Username</span>
+                                            <span class="text-secondary">@comment.DateAdded.ToShortDateString()</span>
+                                        </div>
+                                    </div>
+                                    <div class="card-body" id="@comment.CommentId.ToString()HiddenChildDiv" hidden>
+                                        <div class="mb-3">
+                                            <textarea type="text" class="form-control" id="@comment.CommentId.ToString()EditInput">@comment.Description</textarea>
+                                        </div>
+                                        <div>
+                                            <button class="btn btn-dark" onclick="updateCommentById('@comment.CommentId');">Edit</button>
+                                            <button class="btn btn-danger" onclick="cancelEditFormat('@comment.CommentId');">Cancel</button>
+                                        </div>                                    
+                                    </div>
+                                </div>
+                            }
+                              
+                        }
+                    </div>
+                </div>
+               
+            }
+            else
+            {
+                <p>Blog post not found!</p>
+            }
+
+        </div>
+    </div>
+</div>
+
+
+@section Scripts {
+    <script>
+        const btnLikeElement = document.getElementById('btnLike');
+        const totalLikesElement = document.getElementById('totalLikes');
+
+        async function getTotalLikes() {
+            fetch('/api/blogpostlike/@Model.Id/totallikes',{
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': '*/*'
+                }
+            }).then(data => data.json())
+            .then(result => totalLikesElement.innerHTML = result);
+        }
+
+        async function addLikeForBlog() {
+            fetch('/api/BlogPostLike/Add', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': '*/*'
+                },
+                body: JSON.stringify({ blogPostId: '@Model.Id', userId: '@userManager.GetUserId(User)'})
+            })
+            .then(() => {
+                btnLikeElement.innerHTML = '<i class="bi bi-heart-fill" style="color: palevioletred;"></i>';
+                btnLikeElement.setAttribute('onclick', 'deleteLikeForBlog();');
+                getTotalLikes();
+            });
+        }
+
+        async function deleteLikeForBlog() {
+            fetch('/api/BlogPostLike/Delete', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': '*/*'
+                },
+                body: JSON.stringify({ blogPostId: '@Model.Id', userId: '@userManager.GetUserId(User)' })
+            }).then(() => {
+                btnLikeElement.innerHTML = '<i class="bi bi-heart" style="color: palevioletred;"></i>';
+                btnLikeElement.setAttribute('onclick', 'addLikeForBlog();');
+                getTotalLikes();
+            });
+        }
+
+        async function deleteCommentById(CommentId){
+            fetch('/api/BlogPostComment/Delete/' + CommentId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': '*/*'
+                } 
+            });
+            const currentDivElement = document.getElementById(CommentId);
+            currentDivElement.remove();
+        }
+
+        function showEditFormat(CommentId){
+            document.getElementById(CommentId + 'ChildDiv').hidden = true;
+            document.getElementById(CommentId + 'HiddenChildDiv').hidden = false;
+        }
+
+        function cancelEditFormat(CommentId) {
+            document.getElementById(CommentId + 'ChildDiv').hidden = false;
+            document.getElementById(CommentId + 'HiddenChildDiv').hidden = true;
+        }
+
+        async function updateCommentById(CommentId) {
+            const EditInputElement = document.getElementById(CommentId + 'EditInput');
+            fetch('/api/BlogPostComment/Update/' + CommentId, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': '*/*'
+                },
+                body: JSON.stringify({ description: EditInputElement.value })
+            }).then(() => {
+                cancelEditFormat(CommentId);
+                document.getElementById(CommentId + 'Description').innerHTML = EditInputElement.value;
+            });
+        }
+    </script>
+
+}

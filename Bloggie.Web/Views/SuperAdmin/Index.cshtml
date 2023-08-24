@@ -1,0 +1,24 @@
+﻿@model Bloggie.Web.Models.ViewModels.SuperAdminViewModel
+
+<div class="bg-secondary bg-opacity-10 py-2">
+    <div class="container">
+        <h1>Super Admin Functionality</h1>
+    </div>
+</div>
+
+<div class="container my-5">
+    <div class="justify-content-center">
+        <div class="mb-3">
+            <h4 class="text">Delete all orphaned objects</h4>
+        </div>
+        <div class="mb-3">
+            <form method="post">
+                <span asp-for="@Model.DeletedOrphans"></span>
+                <button type="submit" class="btn btn-danger">Delete</button>
+            </form>
+        </div> 
+        <div>
+            <label>@Model.DeletedOrphans deleted orphans</label>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,4 @@
+﻿Add-Migration "Name of migration" -Context "Name of DbContext" (if more then one exists.)
+Update-Database -Context "Name of DbContext" (if more then one exists.)
+
+Before running migrations on Auth, remember to Redo seeded super admin info
